@@ -3,7 +3,7 @@
 // /output/entry.txt (or $MAKEFUN_OUTPUT_DIR/entry.txt when set).
 // Deterministic: no input, no randomness, no clock, no network.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const JOKE =
@@ -11,4 +11,15 @@ const JOKE =
 
 const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "entry.txt"), JOKE, "utf8");
+const outPath = join(outDir, "entry.txt");
+writeFileSync(outPath, JOKE, "utf8");
+
+// Verify the write landed intact: the file must hold exactly the joke,
+// byte for byte. A short or mangled write fails loudly instead of
+// silently entering a broken text.
+const written = readFileSync(outPath, "utf8");
+if (written !== JOKE) {
+  throw new Error(
+    `entry.txt mismatch: wrote ${Buffer.byteLength(JOKE, "utf8")} bytes, read back ${Buffer.byteLength(written, "utf8")} bytes`,
+  );
+}
